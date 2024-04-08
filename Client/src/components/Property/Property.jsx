@@ -233,7 +233,7 @@ export default function Property() {
         />
         <div className="property-buttons">
           <MarketBidButton
-            bidAmount={property.ltp}
+            bidAmount={sellBids[0] || property.ltp}
             userId={userId}
             propertyId={propertyId}
             login={isLoggedIn}
@@ -244,7 +244,7 @@ export default function Property() {
             login={isLoggedIn}
           />
           <MarketSellButton
-            bidAmount={property.ltp}
+            bidAmount={buyBids[0] || property.ltp}
             userId={userId}
             propertyId={propertyId}
             login={isLoggedIn}
