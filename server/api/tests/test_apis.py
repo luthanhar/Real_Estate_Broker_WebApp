@@ -801,7 +801,7 @@ class TestMarketOrder(TestCase):
 
     def setUp(self):
         self.user = UserProfile.objects.create(id=1, username='test_user', password=make_password('test_password'), funds=1000, email='test@example.com', portfolio = [2, 3])
-        self.user2 = UserProfile.objects.create(id=2, username='test_user2', password=make_password('test_password2'), funds=10, portfolio=[1], email='test2@example.com')
+        self.user2 = UserProfile.objects.create(id=2, username='test_user2', password=make_password('test_password2'), funds=10, portfolio=[1], email='test2@example.com', pan='ABCTY1234D', phone='1111111111')
         self.property = Property.objects.create(id=1, name='Test Property', category='Test Category', description='Test Description', location='Test Location', ltp=100.00)
         self.property2 = Property.objects.create(id=2, name='Test Property, Test Category', category='Test Category', description='Test Description', location='Test Location', ltp=100.00)
         self.property3 = Property.objects.create(id=3, name='Test Property', category='Test Category', description='Test Description', location='Test Location', ltp=100.00)
@@ -936,7 +936,7 @@ class TestMarketOrder(TestCase):
 class TestLimitOrder(TestCase):
     def setUp(self):
         self.user = UserProfile.objects.create(id=1, username='test_user', password=make_password('test_password'), funds=1000, email='test@example.com', portfolio = [2, 3])
-        self.user2 = UserProfile.objects.create(id=2, username='test_user2', password=make_password('test_password2'), funds=10, portfolio=[1], email='test2@example.com')
+        self.user2 = UserProfile.objects.create(id=2, username='test_user2', password=make_password('test_password2'), funds=10, portfolio=[1], email='test2@example.com', pan='ABCTY1234D', phone='1111111111')
         self.property = Property.objects.create(id=1, name='Test Property', category='Test Category', description='Test Description', location='Test Location', ltp=100.00)
         self.property2 = Property.objects.create(id=2, name='Test Property, Test Category', category='Test Category', description='Test Description', location='Test Location', ltp=100.00)
         self.property3 = Property.objects.create(id=3, name='Test Property', category='Test Category', description='Test Description', location='Test Location', ltp=100.00)
