@@ -13,7 +13,7 @@ import {
   TableRow,
   Paper,
 } from "@mui/material";
-import defpropertyimg from "./prop.webp";
+import defpropertyimg from "/prop.webp";
 import "./Property.css"; // Import the CSS file for styling
 import LimitBidButton from "./BidButton";
 import MarketBidButton from "./BidButton2";

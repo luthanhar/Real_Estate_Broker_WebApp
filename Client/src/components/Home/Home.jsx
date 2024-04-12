@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import "./Home.css";
 import Intro from "./Intro";
-import propertyimg from "./prop.webp";
+import propertyimg from "/prop.webp";
 import { Link } from "react-router-dom";
 
 export default function Home() {

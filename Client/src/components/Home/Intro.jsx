@@ -10,7 +10,7 @@ import {
   ListItemButton,
 } from "@mui/material";
 import "./Intro.css";
-import propertyAbout from "./property-about.jpeg";
+import propertyAbout from "/property-about.jpeg";
 
 const HomeBuySection = ({ scrollToBuyingContainer }) => {
   const AboutUSContainerRef = useRef(null);

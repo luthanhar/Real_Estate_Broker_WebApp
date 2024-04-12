@@ -9,7 +9,7 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import bgPic from "./bg_pic.jpeg"; // Import the image
+import bgPic from "/bg_pic.jpeg"; // Import the image
 import Swal from "sweetalert2"; // Import swal
 import { useAuth } from "../Authorisation/Auth";
 

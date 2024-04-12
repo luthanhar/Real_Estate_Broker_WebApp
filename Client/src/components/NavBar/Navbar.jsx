@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import logo from "./logo.jpg";
+import logo from "/logo.png";
 import { useAuth } from "../Authorisation/Auth";
 
 const Navbar = () => {
