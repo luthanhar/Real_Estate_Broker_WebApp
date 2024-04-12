@@ -83,7 +83,7 @@ const Support = () => {
 
   return (
     <Container>
-      <Typography margin="30px" variant="h3" align="center" gutterBottom>
+      <Typography margin="30px" variant="h3" align="center" color="black" gutterBottom>
         Support Page
       </Typography>
       <form onSubmit={handleSubmit}>
