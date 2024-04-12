@@ -61,7 +61,7 @@ const FundsPage = () => {
       }
     };
     fetchUsername(); // Call fetchUsername just once when the component mounts
-  }, []);
+  }, [userId]);
 
   const handleAddFundsConfirmation = () => {
     Swal.fire({
