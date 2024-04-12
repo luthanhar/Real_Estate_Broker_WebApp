@@ -280,10 +280,10 @@ export default function Property() {
         <Typography variant="h6" className="property-category" gutterBottom>
           Category: {property.category}
         </Typography>
-        <Typography variant="h6" className="property-location" gutterBottom>
+        <Typography variant="h6" className="property-location"  color="black" gutterBottom>
           Location: {property.location}
         </Typography>
-        <Typography variant="subtitle1" className="property-ltp" gutterBottom>
+        <Typography variant="subtitle1" className="property-ltp" color="black" gutterBottom>
           Last Traded Price: {property.ltp}
         </Typography>
         <Typography

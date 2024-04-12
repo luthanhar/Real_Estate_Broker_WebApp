@@ -61,7 +61,7 @@ const HomeBuySection = ({ scrollToBuyingContainer }) => {
         <Typography variant="h4" sx={{ fontWeight: "700" }} gutterBottom>
           About Us
         </Typography>
-        <Typography variant="body1">
+        <Typography variant="body1" color="black">
           Welcome to Real Estate Broker – your one-stop destination for all your
           real estate needs. Whether you're buying your dream home or selling a
           property, we're here to make the process simple and stress-free. With

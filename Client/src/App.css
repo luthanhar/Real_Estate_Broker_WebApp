@@ -8,6 +8,7 @@
   align-items: center; 
   justify-content: space-between;
   min-height: 100vh;
+  background-color: #fff ;
 }
 
 @media (max-width: 600px) {
@@ -27,6 +28,8 @@
   max-width: 95%; 
   }
 }
+
+
 
 
 /* .css-zndlpk-MuiContainer-root {
