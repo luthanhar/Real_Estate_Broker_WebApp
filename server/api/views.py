@@ -285,6 +285,8 @@ def marketOrder(request):
         property.save()
         
         order.delete()
+        other_sell_orders = Order.objects.filter(prop=property_id, order_type='sell').exclude(pk=order.pk)
+        other_sell_orders.delete()
         
     elif action == 'sell':
         if property_id not in user.portfolio:
@@ -313,6 +315,9 @@ def marketOrder(request):
         property.save()
         
         order.delete()
+        # Delete other sell orders for the same property made by the seller
+        other_sell_orders = Order.objects.filter(prop=property_id, order_type='sell').exclude(pk=order.pk)
+        other_sell_orders.delete()
 
     else:
         return Response({"error": "Invalid action. Please use 'buy' or 'sell'"}, status=status.HTTP_400_BAD_REQUEST)
