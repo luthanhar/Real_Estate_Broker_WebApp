@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Typography,
   Grid,
@@ -12,179 +12,92 @@ import {
 import bgPic from "/bg_pic.jpeg"; // Import the image
 import Swal from "sweetalert2"; // Import swal
 import { useAuth } from "../Authorisation/Auth";
-
+import {
+  fetchCurrentFunds,
+  fetchUsername,
+  addFunds,
+  withdrawFunds,
+} from "./apiCalls";
 const FundsPage = () => {
   const [currentFunds, setCurrentFunds] = useState(null); // Initial funds
   const [username, setUsername] = useState("-Username-"); // Initial username
-  const { userId } = useAuth();
-  console.log(userId);
-  const [addAmount, setAddAmount] = useState("");
-  const [withdrawAmount, setWithdrawAmount] = useState("");
+  const { user, isLoggedIn, token } = useAuth();
+  const userId = isLoggedIn ? user.user_id : null;
+  const [actionType, setActionType] = useState(null);
+  const [handleFunds, setHandleFunds] = useState(() => {});
   const [error, setError] = useState("");
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [openWithdrawDialog, setOpenWithdrawDialog] = useState(false);
-
-  useEffect(() => {
-    const fetchCurrentFunds = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:8000/api/funds/${userId}`,
-          { method: "GET" }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setCurrentFunds(data.funds); // Assuming data is an object with a 'funds' property
-        } else {
-          setError("Failed to fetch funds");
-        }
-      } catch (error) {
-        console.error("Error fetching funds:", error);
-        setError("An error occurred while fetching funds");
-      }
-    };
-    fetchCurrentFunds(); // Call fetchCurrentFunds just once when the component mounts
-    const fetchUsername = async () => {
-      try {
-        const response = await fetch(
-          `http://localhost:8000/api/users/${userId}`,
-          { method: "GET" }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setUsername(data.name); // Assuming data is an object with a 'username' property
-        } else {
-          setError("Failed to fetch username");
-        }
-      } catch (error) {
-        console.error("Error fetching username:", error);
-        setError("An error occurred while fetching username");
-      }
-    };
-    fetchUsername(); // Call fetchUsername just once when the component mounts
-  }, [userId]);
-
-  const handleAddFundsConfirmation = () => {
-    Swal.fire({
-      title: "Huh, Sure?",
-      text: "Are you certain you wish to deposit funds?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setOpenAddDialog(true);
-      }
-    });
-  };
-
-  const handleCloseAddDialog = () => {
-    setOpenAddDialog(false);
-    setError("");
-  };
-
-  const handleWithdrawalConfirmation = () => {
-    Swal.fire({
-      title: "Huh, Sure?",
-      text: "Are you certain you wish to withdraw funds?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Yes",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        setOpenWithdrawDialog(true);
-      }
-    });
-  };
-
-  const handleCloseWithdrawDialog = () => {
-    setOpenWithdrawDialog(false);
-    setError("");
-  };
-
-  const handleAddAmountChange = (event) => {
-    setAddAmount(event.target.value);
-    setError("");
-  };
-
-  const handleWithdrawAmountChange = (event) => {
-    setWithdrawAmount(event.target.value);
-    setError("");
-  };
+  const [openDialog, setOpenDialog] = useState(false);
+  const [amount, setAmount] = useState(null);
 
   const handleAddFunds = async () => {
-    if (isNaN(parseFloat(addAmount)) || parseFloat(addAmount) <= 0) {
+    console.log("Adding funds");
+
+    if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       setError("Please enter a valid amount!");
       return;
     }
-    try {
-      const response = await fetch(
-        `http://localhost:8000/api/funds/${userId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: "add",
-            amount: parseFloat(addAmount),
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentFunds(data.funds);
-        setOpenAddDialog(false);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error);
-      }
-    } catch (error) {
-      console.error("Error adding funds:", error);
-      setError("An error occurred. Please try again.");
+    let money = await addFunds(userId, token, amount);
+    if (money) {
+      setCurrentFunds(money);
+      setOpenDialog(false);
+      setAmount(null);
     }
   };
 
   const handleWithdrawFunds = async () => {
-    if (isNaN(parseFloat(withdrawAmount)) || parseFloat(withdrawAmount) <= 0) {
+    console.log("Withdrawing funds");
+
+    if (isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
       setError("Please enter a valid amount!");
       return;
     }
-    if (parseFloat(withdrawAmount) > currentFunds) {
+    if (parseFloat(amount) > currentFunds) {
       setError("Insufficient Funds!");
       return;
     }
-    try {
-      const response = await fetch(
-        `http://localhost:8000/api/funds/${userId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: "withdraw",
-            amount: parseFloat(withdrawAmount),
-          }),
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentFunds(data.funds);
-        setOpenWithdrawDialog(false);
-      } else {
-        const errorData = await response.json();
-        setError(errorData.error);
-      }
-    } catch (error) {
-      console.error("Error withdrawing funds:", error);
-      setError("An error occurred. Please try again.");
+    let money = await withdrawFunds(userId, token, amount);
+    if (money) {
+      setCurrentFunds(money);
+      setOpenDialog(false);
+      setAmount(null);
     }
+  };
+
+  const handleFundsConfirmation = (e) => {
+    Swal.fire({
+      text: "Are you sure you wish to " + e.target.textContent + "?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setOpenDialog(true);
+        setActionType(e.target.textContent[0]);
+      }
+    });
+  };
+
+  useEffect(() => {
+    (async () => {
+      const money = await fetchCurrentFunds(userId, token);
+      if (money) setCurrentFunds(money);
+    })();
+    (async () => {
+      const uname = await fetchUsername(userId, token);
+      if (uname) setUsername(uname);
+    })();
+  }, []);
+
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setError("");
+  };
+
+  const handleAmountChange = (event) => {
+    setAmount(event.target.value);
+    setError("");
   };
 
   return (
@@ -224,39 +137,51 @@ const FundsPage = () => {
               : "Loading..."}
           </Typography>
         </Grid>
-        <Grid item xs={12} align="center">
-          <Button
-            variant="contained"
-            style={{ backgroundColor: "primary", color: "white" }}
-            size="large"
-            onClick={handleAddFundsConfirmation}
+
+        <Grid item xs={12}>
+          <Grid
+            container
+            spacing={3}
+            justifyContent="space-evenly"
+            alignItems="center"
           >
-            Deposit Funds
-          </Button>
-          <Button
-            variant="contained"
-            style={{
-              backgroundColor: "#FF5252",
-              color: "white",
-              marginLeft: "150px",
-              marginTop: "100px",
-              marginBottom: "100px",
-            }}
-            size="large"
-            onClick={handleWithdrawalConfirmation}
-          >
-            Withdraw Funds
-          </Button>
+            <Grid item>
+              <Button
+                variant="contained"
+                style={{ backgroundColor: "primary", color: "white" }}
+                size="large"
+                onClick={handleFundsConfirmation}
+              >
+                Deposit Funds
+              </Button>
+            </Grid>
+            <Grid item>
+              <Button
+                variant="contained"
+                style={{ backgroundColor: "#FF5252", color: "white" }}
+                size="large"
+                onClick={handleFundsConfirmation}
+              >
+                Withdraw Funds
+              </Button>
+            </Grid>
+          </Grid>
         </Grid>
-        <Dialog open={openAddDialog} onClose={handleCloseAddDialog}>
-          <DialogTitle>Add Funds</DialogTitle>
+
+        <Dialog open={openDialog} onClose={handleCloseDialog}>
+          <DialogTitle>
+            {actionType != null
+              ? actionType == "D"
+                ? "Deposit Funds"
+                : "Withdraw Funds"
+              : "Nothing"}
+          </DialogTitle>
           <DialogContent>
             <TextField
               fullWidth
               label="Enter Amount"
               variant="outlined"
-              value={addAmount}
-              onChange={handleAddAmountChange}
+              onChange={handleAmountChange}
               margin="normal"
             />
             {error && (
@@ -266,41 +191,23 @@ const FundsPage = () => {
             )}
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleCloseAddDialog}>Cancel</Button>
+            <Button onClick={handleCloseDialog}>Cancel</Button>
             <Button
-              onClick={handleAddFunds}
+              onClick={() => {
+                if (actionType == "D") {
+                  handleAddFunds();
+                } else {
+                  handleWithdrawFunds();
+                }
+              }}
               variant="contained"
               color="primary"
             >
-              Add
-            </Button>
-          </DialogActions>
-        </Dialog>
-        <Dialog open={openWithdrawDialog} onClose={handleCloseWithdrawDialog}>
-          <DialogTitle>Withdraw Funds</DialogTitle>
-          <DialogContent>
-            <TextField
-              fullWidth
-              label="Enter Amount"
-              variant="outlined"
-              value={withdrawAmount}
-              onChange={handleWithdrawAmountChange}
-              margin="normal"
-            />
-            {error && (
-              <Typography variant="body1" color="error">
-                {error}
-              </Typography>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseWithdrawDialog}>Cancel</Button>
-            <Button
-              onClick={handleWithdrawFunds}
-              variant="contained"
-              sx={{ bgcolor: "#FF5252", color: "white" }}
-            >
-              Withdraw
+              {actionType != null
+                ? actionType == "D"
+                  ? "Add"
+                  : "Withdraw"
+                : "Nothing"}
             </Button>
           </DialogActions>
         </Dialog>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Typography,
@@ -12,15 +12,23 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Grid,
+  TextField,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import defpropertyimg from "/prop.webp";
 import "./Property.css"; // Import the CSS file for styling
-import LimitBidButton from "./BidButton";
-import MarketBidButton from "./BidButton2";
-import LimitSellButton from "./SellButton";
-import MarketSellButton from "./SellButton2";
-import ConfirmationDialog from "./ConfirmationDialogue";
 import { useAuth } from "../Authorisation/Auth";
+import Swal from "sweetalert2";
+import {
+  actionFromWatchlist,
+  getPropertyById,
+  fetchOrder,
+} from "../UserList/APIcalls";
+import { Order } from "./apiCalls";
 
 function BasicTable({ buyBids, sellBids }) {
   // Sort rows by buybid in ascending order and sellbid in descending order
@@ -60,150 +68,118 @@ function BasicTable({ buyBids, sellBids }) {
 }
 
 export default function Property() {
+  const defaultProperty = {
+    name: "Property Title",
+    category: "Property Category",
+    location: "Property Location",
+    ltp: "Property LTP",
+    description:
+      "Welcome to your dream home! Nestled in the heart of a vibrant community, this charming property boasts modern comforts and classic appeal.",
+  };
+
   const { propertyId } = useParams();
-  const [property, setProperty] = useState(null);
+  const navigate = useNavigate();
+  const [property, setProperty] = useState(defaultProperty);
   const [buyBids, setBuyBids] = useState([]);
   const [sellBids, setSellBids] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
-  const [dialogMessage, setDialogMessage] = useState("");
-  const [actionType, setActionType] = useState("");
+  const [actionType, setActionType] = useState(null);
+  const [error, setError] = useState(null);
+  const [amount, setAmount] = useState(null);
   const [propertyimg, setPropertyimg] = useState(defpropertyimg);
-  const { isLoggedIn, userId } = useAuth();
-  const navigate = useNavigate();
+  const { isLoggedIn, user, token } = useAuth();
+  const gridRef = useRef(null);
+  const userId = isLoggedIn ? user.user_id : null;
+  if (!propertyId) {
+    alert("Property does not exist");
+    return useEffect(() => {
+      navigate("/funds");
+    }, []);
+  }
 
-  const handleAddToWatchlist = () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-    }
-    setActionType("add");
-    setDialogMessage(
-      "Are you sure you want to add this property to your wishlist?"
-    );
-    setOpenDialog(true);
-  };
-
-  const handleRemoveFromWatchlist = () => {
-    if (!isLoggedIn) {
-      navigate("/login");
-    }
-    setActionType("remove");
-    setDialogMessage(
-      "Are you sure you want to remove this property from your wishlist?"
-    );
-    setOpenDialog(true);
-  };
-
-  const handleDialogClose = () => {
+  const handleCloseDialog = () => {
     setOpenDialog(false);
+    setError("");
   };
 
-  const handleDialogConfirm = async () => {
-    setOpenDialog(false);
-    try {
-      const response = await fetch(
-        `http://localhost:8000/api/watchlist/${userId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action: actionType,
-            property_id: propertyId,
-          }),
-        }
-      );
+  const handleAmountChange = async (event) => {
+    setAmount(event.target.value);
+    setError("");
+  };
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Action successful: Watchlist fetched");
-        // Handle success, e.g., show a success message
-      } else {
-        const errorData = await response.json();
-        console.error("Action failed:", errorData.error);
-        // Handle error, e.g., show an error message
+  const handleConfirmation = (e) => {
+    let target = e.target.textContent.split(" ");
+    Swal.fire({
+      text: "Are you sure you wish to place " + e.target.textContent + "?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // if (target[0] == "Market") {
+        handleMarketOrder(target[2]);
+        // } else {
+        // handleLimitOrder(target[2]);
+        // }
       }
-    } catch (error) {
-      console.error("Error performing action:", error);
-      // Handle error, e.g., show an error message
+    });
+  };
+
+  const handleMarketOrder = (type) => {
+    if (type == "Buy") {
+      setAmount(sellBids[0]);
+    } else {
+      setAmount(buyBids[0]);
+    }
+    Order(userId, propertyId, amount, token, "market", type.toLowerCase());
+  };
+  const handleLimitOrder = (e) => {
+    setOpenDialog(true);
+
+    if (e.target.textContent.split(" ")[2] == "Buy") {
+      setActionType("buy");
+    } else {
+      setActionType("sell");
     }
   };
 
   useEffect(() => {
-    // Fetch property data from the server based on propertyId
-    const fetchData = async () => {
-      try {
-        const propertyResponse = await fetch(
-          `http://localhost:8000/api/properties/${propertyId}`
-        );
-        if (!propertyResponse.ok) {
-          throw new Error("Failed to fetch property");
-        }
-        const propertyData = await propertyResponse.json();
-        setProperty(propertyData);
-        // const imageUrl = 'https://jooinn.com/images/beautiful-house-20.jpg';
-        // const img = new Image();
-        // img.src = imageUrl;
-        // setPropertyimg(img);
-
-        // Fetch top buy orders
-        const buyResponse = await fetch(
-          `http://localhost:8000/api/orders/buy/${propertyId}`
-        );
-        if (!buyResponse.ok) {
-          throw new Error("Failed to fetch buy orders");
-        }
-        const buyData = await buyResponse.json();
-        const buyBidsArray = buyData.map((order) => order.price);
-        setBuyBids(buyBidsArray);
-
-        // Fetch top sell orders
-        const sellResponse = await fetch(
-          `http://localhost:8000/api/orders/sell/${propertyId}`
-        );
-        if (!sellResponse.ok) {
-          throw new Error("Failed to fetch sell orders");
-        }
-        const sellData = await sellResponse.json();
-        const sellBidsArray = sellData.map((order) => order.price);
-        setSellBids(sellBidsArray);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        // Use default property values if fetch fails
-        const defaultProperty = {
-          name: "Property Title",
-          category: "Property Category",
-          location: "Property Location",
-          ltp: "Property LTP",
-          description:
-            "Welcome to your dream home! Nestled in the heart of a vibrant community, this charming property boasts modern comforts and classic appeal.",
-        };
-        setProperty(defaultProperty);
-        setBuyBids([0, 0, 0, 0, 0]); // Default buy bids
-        setSellBids([0, 0, 0, 0, 0]); // Default sell bids
-      }
+    const handleClick = () => {
+      if (!isLoggedIn) navigate("/login");
     };
 
-    if (propertyId) {
-      fetchData();
-    } else {
-      // Default property object if no propertyId is passed
-      const defaultProperty = {
-        name: "Property Title",
-        category: "Property Category",
-        location: "Property Location",
-        ltp: "Property LTP",
-        description:
-          "Welcome to your dream home! Nestled in the heart of a vibrant community, this charming property boasts modern comforts and classic appeal.",
-      };
-      setProperty(defaultProperty);
-      setBuyBids([0, 0, 0, 0, 0]); // Default buy bids
-      setSellBids([0, 0, 0, 0, 0]); // Default sell bids
+    const gridElement = gridRef.current;
+    if (gridElement) {
+      gridElement.addEventListener("click", handleClick, true);
     }
 
-    fetchData();
+    return () => {
+      if (gridElement) {
+        gridElement.removeEventListener("click", handleClick);
+      }
+    };
+  }, []);
 
-    // Fetch new bids every 10 seconds
+  useEffect(() => {
+    // Fetch property data from the server based on propertyId
+    const fetchData = async () => {
+      let data = await getPropertyById(propertyId);
+      if (data) {
+        setProperty(data);
+      }
+      data = await fetchOrder("buy", propertyId);
+      if (data) {
+        setBuyBids(data);
+      }
+      data = await fetchOrder("sell", propertyId);
+      if (data) {
+        setSellBids(data);
+      }
+    };
+    fetchData();
+    // Fetch new bids every 5 seconds
     const interval = setInterval(() => {
       fetchData();
     }, 2000);
@@ -211,18 +187,49 @@ export default function Property() {
     return () => clearInterval(interval); // Cleanup the interval on unmount
   }, [propertyId]);
 
-  if (!property) {
-    return <div>Loading...</div>;
-  }
-
   return (
     <Container className="property-container" sx={{ mt: 4 }}>
-      <ConfirmationDialog
-        open={openDialog}
-        onClose={handleDialogClose}
-        onConfirm={handleDialogConfirm}
-        message={dialogMessage}
-      />
+      <Dialog open={openDialog} onClose={handleCloseDialog}>
+        <DialogTitle>
+          {actionType != null
+            ? actionType == "buy"
+              ? "Enter Buy Bid"
+              : "Enter Sell Bid"
+            : "Nothing"}
+        </DialogTitle>
+        <DialogContent>
+          <TextField
+            fullWidth
+            label="Enter Amount"
+            variant="outlined"
+            onChange={handleAmountChange}
+            margin="normal"
+          />
+          {error && (
+            <Typography variant="body1" color="error">
+              {error}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>Cancel</Button>
+          <Button
+            onClick={() => {
+              if (!/^\d+$/.test(amount)) {
+                setError("Please enter a valid amount!");
+                return;
+              }
+              Order(userId, propertyId, amount, token, "limit", actionType);
+              setOpenDialog(false);
+              setAmount(null);
+            }}
+            variant="contained"
+            color="primary"
+          >
+            Place Bid
+          </Button>
+        </DialogActions>
+      </Dialog>
       <div className="property-content">
         <CardMedia
           component="img"
@@ -232,47 +239,104 @@ export default function Property() {
           className="property-image"
         />
         <div className="property-buttons">
-          <MarketBidButton
-            bidAmount={sellBids[0] || property.ltp}
-            userId={userId}
-            propertyId={propertyId}
-            login={isLoggedIn}
-          />
-          <LimitBidButton
-            userId={userId}
-            propertyId={propertyId}
-            login={isLoggedIn}
-          />
-          <MarketSellButton
-            bidAmount={buyBids[0] || property.ltp}
-            userId={userId}
-            propertyId={propertyId}
-            login={isLoggedIn}
-          />
-          <LimitSellButton
-            userId={userId}
-            propertyId={propertyId}
-            login={isLoggedIn}
-          />
-          <Button
-            variant="outlined"
-            color="primary"
-            className="wishlist-button"
-            onClick={handleAddToWatchlist}
+          <Grid
+            container
+            spacing={1}
+            justifyContent="center"
+            alignItems="center"
+            flexDirection="column"
+            ref={gridRef}
           >
-            Add to Wishlist
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            className="wishlist-button"
-            onClick={handleRemoveFromWatchlist}
-          >
-            Remove from Wishlist
-          </Button>
-          <BasicTable buyBids={buyBids} sellBids={sellBids} />
+            <Grid item style={{ minWidth: "100%" }}>
+              <Button
+                variant="contained"
+                style={{ backgroundColor: "primary", color: "white" }}
+                size="large"
+                sx={{ minWidth: "100%" }}
+                onClick={handleConfirmation}
+              >
+                Market Order Buy
+              </Button>
+            </Grid>
+            <Grid item style={{ minWidth: "100%" }}>
+              <Button
+                variant="contained"
+                style={{ backgroundColor: "primary", color: "white" }}
+                size="large"
+                sx={{ minWidth: "100%" }}
+                onClick={handleConfirmation}
+              >
+                Market Order Sell
+              </Button>
+            </Grid>
+            <Grid item style={{ minWidth: "100%" }}>
+              <Button
+                variant="contained"
+                style={{ backgroundColor: "primary", color: "white" }}
+                size="large"
+                sx={{ minWidth: "100%" }}
+                onClick={handleLimitOrder}
+              >
+                Limit Order Buy
+              </Button>
+            </Grid>
+
+            <Grid item style={{ minWidth: "100%" }}>
+              <Button
+                variant="contained"
+                style={{ backgroundColor: "primary", color: "white" }}
+                size="large"
+                sx={{ minWidth: "100%" }}
+                onClick={handleLimitOrder}
+              >
+                Limit Order Sell
+              </Button>
+            </Grid>
+
+            <Grid item style={{ minWidth: "100%" }}>
+              <Button
+                variant="contained"
+                style={{ backgroundColor: "white", color: "blue" }}
+                size="large"
+                sx={{ minWidth: "100%" }}
+                onClick={() => {
+                  actionFromWatchlist(userId, propertyId, token, "add");
+                  Swal.fire(
+                    "Added!",
+                    "Property has been added to Watchlist.",
+                    "success"
+                  );
+                }}
+              >
+                Add to Watchlist
+              </Button>
+            </Grid>
+            <Grid item style={{ minWidth: "100%" }}>
+              <Button
+                variant="contained"
+                style={{ backgroundColor: "white", color: "blue" }}
+                size="large"
+                sx={{ minWidth: "100%" }}
+                onClick={() => {
+                  actionFromWatchlist(userId, propertyId, token, "remove");
+                  Swal.fire(
+                    "Removed!",
+                    "Property has been deleted from Watchlist.",
+                    "success"
+                  );
+                }}
+              >
+                Remove from Watchlist
+              </Button>
+            </Grid>
+
+            <Grid item minWidth="100%">
+              <BasicTable buyBids={buyBids} sellBids={sellBids} />
+            </Grid>
+          </Grid>
         </div>
       </div>
+
       <div className="property-details">
         <Typography variant="h4" className="property-title" gutterBottom>
           {property.name}
@@ -280,10 +344,20 @@ export default function Property() {
         <Typography variant="h6" className="property-category" gutterBottom>
           Category: {property.category}
         </Typography>
-        <Typography variant="h6" className="property-location"  color="black" gutterBottom>
+        <Typography
+          variant="h6"
+          className="property-location"
+          color="black"
+          gutterBottom
+        >
           Location: {property.location}
         </Typography>
-        <Typography variant="subtitle1" className="property-ltp" color="black" gutterBottom>
+        <Typography
+          variant="subtitle1"
+          className="property-ltp"
+          color="black"
+          gutterBottom
+        >
           Last Traded Price: {property.ltp}
         </Typography>
         <Typography

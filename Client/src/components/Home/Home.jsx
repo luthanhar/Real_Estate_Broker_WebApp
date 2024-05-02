@@ -13,16 +13,20 @@ import "./Home.css";
 import Intro from "./Intro";
 import propertyimg from "/prop.webp";
 import { Link } from "react-router-dom";
+import { useAuth } from "../Authorisation/Auth";
 
 export default function Home() {
-  // const [count, setCount] = useState(0);
-
+  const { token } = useAuth();
   const [properties, setProperties] = useState([]);
-
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/properties");
+        const response = await fetch("http://localhost:8000/api/properties", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
         if (!response.ok) {
           throw new Error("Failed to fetch properties");
         }

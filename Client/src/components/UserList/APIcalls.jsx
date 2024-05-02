@@ -1,9 +1,14 @@
-export async function getWatchlist(userId) {
+import { useAuth } from "../Authorisation/Auth";
+export async function getWatchlist(userId, token) {
   try {
     const response = await fetch(
       `http://localhost:8000/api/watchlist/${userId}`,
       {
         method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + String(token.access),
+        },
       }
     );
     if (!response.ok) {
@@ -16,12 +21,17 @@ export async function getWatchlist(userId) {
     return null;
   }
 }
-export async function getPortlist(userId) {
+
+export async function getPortlist(userId, token) {
   try {
     const response = await fetch(
       `http://localhost:8000/api/portfolio/${userId}`,
       {
         method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + String(token.access),
+        },
       }
     );
     if (!response.ok) {
@@ -34,10 +44,11 @@ export async function getPortlist(userId) {
     return null;
   }
 }
+
 export async function getPropertyById(propertyId) {
   try {
     const response = await fetch(
-      `http://localhost:8000/api/properties/${propertyId}`,
+      `http://localhost:8000/api/getproperties/${propertyId}`,
       {
         method: "GET",
       }
@@ -57,27 +68,13 @@ export async function getPropertyById(propertyId) {
     return null;
   }
 }
-export async function fetchPropertyDetails(propertyId) {
-  try {
-    if (!propertyId) {
-      throw new Error("Property ID is undefined or null");
-    } else {
-      const property = await getPropertyById(propertyId);
-      if (property) {
-        // const { name, category, location, ltp } = property;
-        // const selectedFields = { name, category, location, ltp };
-        return property;
-      } else {
-        console.log("Nothing was fetched");
-      }
-    }
-  } catch (error) {
-    console.error(error);
-    return null;
-  }
-}
 
-export async function removeFromWatchlist(userId, propertyId) {
+export async function actionFromWatchlist(
+  userId,
+  propertyId,
+  token,
+  actionType
+) {
   try {
     const response = await fetch(
       `http://localhost:8000/api/watchlist/${userId}`,
@@ -85,46 +82,42 @@ export async function removeFromWatchlist(userId, propertyId) {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          Authorization: "Bearer " + String(token.access),
         },
         body: JSON.stringify({
-          action: "remove",
+          action: actionType,
           property_id: propertyId,
         }),
       }
     );
-    if (!response.ok) {
-      throw new Error("Failed to remove from watchlist");
-    }
     const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        "Failed to " + actionType + " from watchlist: ",
+        data.error
+      );
+    }
     return data.watchlist;
   } catch (error) {
-    console.error("Error removing from watchlist:", error);
+    console.error("Error " + actionType + "ing from watchlist:", error);
     return null;
   }
 }
 
-export async function addToWatchlist(userId, propertyId) {
+export const fetchOrder = async (orderType, propertyId) => {
+  // Fetch top buy orders
   try {
-    const response = await fetch(
-      `http://localhost:8000/api/watchlist/${userId}`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          action: "add",
-          property_id: propertyId,
-        }),
-      }
+    const Response = await fetch(
+      `http://localhost:8000/api/orders/${orderType}/${propertyId}`
     );
-    if (!response.ok) {
-      throw new Error("Failed to add to watchlist");
+    if (!Response.ok) {
+      throw new Error("Failed to fetch " + orderType + " orders");
     }
-    const data = await response.json();
-    return data.watchlist;
+    const Data = await Response.json();
+    const BidsArray = Data.map((order) => order.price);
+    return BidsArray;
   } catch (error) {
-    console.error("Error adding to watchlist:", error);
-    return null;
+    console.error("Error: ", error);
   }
-}
+};

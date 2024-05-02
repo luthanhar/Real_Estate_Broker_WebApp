@@ -28,13 +28,12 @@ import {
   getWatchlist,
   getPortlist,
   getPropertyById,
-  fetchPropertyDetails,
-  removeFromWatchlist,
-  addToWatchlist,
+  actionFromWatchlist,
 } from "./APIcalls";
 
 export default function UserList() {
-  const { isLoggedIn, userId } = useAuth();
+  const { isLoggedIn, user, token } = useAuth();
+  const userId = isLoggedIn ? user.user_id : null;
   const { list } = useParams();
   const defaultValue = list;
   const [newPropertyId, setNewPropertyId] = useState("");
@@ -59,11 +58,11 @@ export default function UserList() {
     // Fetch watchlist data when component mounts
     if (isLoggedIn) {
       const fetchList = async () => {
-        const data = await getWatchlist(userId); // Call API function to get watchlist
+        const data = await getWatchlist(userId, token); // Call API function to get watchlist
         if (data) {
           setWatchlist(data);
         }
-        const port = await getPortlist(userId); // Call API function to get watchlist
+        const port = await getPortlist(userId, token); // Call API function to get watchlist
         if (port) {
           setPortlist(port);
         }
@@ -75,9 +74,9 @@ export default function UserList() {
   // Fetch property details for each property ID in the watchlist
   useEffect(() => {
     const fetchDetails = async () => {
-      const details = await Promise.all(watchlist.map(fetchPropertyDetails));
+      const details = await Promise.all(watchlist.map(getPropertyById));
       setWatchPropertyDetails(details.filter(Boolean)); // Filter out null values (errors)
-      const portdetails = await Promise.all(portlist.map(fetchPropertyDetails));
+      const portdetails = await Promise.all(portlist.map(getPropertyById));
       setPortPropertyDetails(portdetails.filter(Boolean)); // Filter out null values (errors)
     };
     fetchDetails();
@@ -92,7 +91,12 @@ export default function UserList() {
 
   const handleRemoveFromWatchlist = async (propertyId) => {
     if (isLoggedIn) {
-      const updatedWatchlist = await removeFromWatchlist(userId, propertyId); // Call API function to remove from watchlist
+      const updatedWatchlist = await actionFromWatchlist(
+        userId,
+        propertyId,
+        token,
+        "remove"
+      ); // Call API function to remove from watchlist
       if (updatedWatchlist) {
         setWatchlist(updatedWatchlist);
         console.log("Item removed from watchlist");
@@ -108,7 +112,7 @@ export default function UserList() {
       return;
     }
 
-    const updatedWatchlist = await addToWatchlist(userId, newPropertyId);
+    const updatedWatchlist = await addToWatchlist(userId, newPropertyId, token);
     if (updatedWatchlist) {
       setWatchlist(updatedWatchlist);
       console.log("Item added to watchlist");
@@ -139,7 +143,7 @@ export default function UserList() {
     }).then((result) => {
       if (result.value) {
         handleRemoveFromWatchlist("" + id);
-        Swal.fire("Deleted!", "Your file has been deleted.", "success");
+        Swal.fire("Deleted!", "Your property has been deleted.", "success");
       }
     });
   };

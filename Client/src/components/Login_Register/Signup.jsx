@@ -22,7 +22,7 @@ import Swal from "sweetalert2";
 const defaultTheme = createTheme();
 
 export default function SignUp() {
-  const { isLoggedIn, userId, login } = useAuth();
+  const { isLoggedIn } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {

@@ -25,7 +25,8 @@ import Swal from "sweetalert2";
 const defaultTheme = createTheme();
 
 export default function SignIn() {
-  const { isLoggedIn, userId, login, logout } = useAuth();
+  const { isLoggedIn, user, login, logout } = useAuth();
+  const userId = isLoggedIn ? user.user_id : null;
   const navigate = useNavigate();
   const location = useLocation();
   const params = new URLSearchParams(location.search);
@@ -62,10 +63,11 @@ export default function SignIn() {
     const formData = new FormData(event.currentTarget);
     var object = {};
     formData.forEach((value, key) => (object[key] = value));
+    console.log(object);
 
     try {
       // Send form data to the API endpoint using fetch or any other HTTP client library
-      const response = await fetch("http://localhost:8000/api/login", {
+      const response = await fetch("http://localhost:8000/api/token/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -76,16 +78,16 @@ export default function SignIn() {
 
       if (response.ok) {
         // Handle successful response
-        login(userData.user);
+        login(userData);
         console.log("Login successful");
         Swal.fire("Success!", "Login successful", "success");
-
         navigate("/funds");
       } else {
         // Handle error response
-        console.error(userData.message);
+        // console.error(userData.message);
         event.target.reset();
-        Swal.fire("Error!", userData.message, "error");
+        Swal.fire("Error!", "Incorrect credentials", "error");
+        throw new Error(userData.message);
       }
     } catch (error) {
       // Handle network errors
